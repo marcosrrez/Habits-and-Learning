@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Learning Orbit</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --background-color: #f4f6f7;
+            --text-color: #2c3e50;
+            --learning-background: #f9f5f0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Habit Tracker Styles (Previous Styles) */
+        /* ... (keep all previous CSS from the last implementation) */
+
+        /* New Learning Section Styles */
+        .learning-container {
+            background-color: var(--learning-background);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .learning-prompt {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .learning-prompt:hover {
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .learning-prompt h3 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        .learning-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .learning-button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .reveal-button {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .correct-button {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .incorrect-button {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .learning-answer {
+            display: none;
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f0f4f8;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Previous Habit Tracker HTML remains the same -->
+    
+    <!-- New Learning Section -->
+    <div class="learning-container">
+        <h2>Family Learning Orbit 📚</h2>
+        
+        <div id="learning-prompts">
+            <!-- Learning prompts will be dynamically inserted here -->
+        </div>
+
+        <button id="add-learning-prompt" class="add-habit-button">Add Learning Prompt</button>
+    </div>
+
+    <script>
+        class FamilyLearningTracker extends FamilyHabitTracker {
+            constructor() {
+                super();
+                this.learningPrompts = JSON.parse(localStorage.getItem('learningPrompts')) || [];
+                this.renderLearningPrompts();
+                this.setupLearningEventListeners();
+            }
+
+            setupLearningEventListeners() {
+                const addPromptButton = document.getElementById('add-learning-prompt');
+                addPromptButton.addEventListener('click', () => {
+                    const question = prompt("Enter your learning prompt (question):");
+                    const answer = prompt("Enter the answer:");
+                    
+                    if (question && answer) {
+                        this.addLearningPrompt(question, answer);
+                    }
+                });
+            }
+
+            addLearningPrompt(question, answer) {
+                const newPrompt = {
+                    id: Date.now(),
+                    question,
+                    answer,
+                    difficulty: 1, // Initial difficulty
+                    lastReviewed: null,
+                    reviewInterval: 1, // Days between reviews
+                    repetitions: 0
+                };
+
+                this.learningPrompts.push(newPrompt);
+                this.saveLearningPrompts();
+                this.renderLearningPrompts();
+            }
+
+            saveLearningPrompts() {
+                localStorage.setItem('learningPrompts', JSON.stringify(this.learningPrompts));
+            }
+
+            calculateNextReview(prompt, wasCorrect) {
+                const ease = wasCorrect ? 1.3 : 1.0;
+                
+                if (wasCorrect) {
+                    prompt.repetitions++;
+                    prompt.reviewInterval = prompt.repetitions === 1 
+                        ? 1 
+                        : prompt.reviewInterval * ease;
+                } else {
+                    prompt.repetitions = 0;
+                    prompt.reviewInterval = 1;
+                }
+
+                prompt.lastReviewed = new Date().getTime();
+                return prompt;
+            }
+
+            renderLearningPrompts() {
+                const container = document.getElementById('learning-prompts');
+                container.innerHTML = '';
+
+                this.learningPrompts.forEach(prompt => {
+                    const promptElement = document.createElement('div');
+                    promptElement.classList.add('learning-prompt');
+
+                    const titleElement = document.createElement('h3');
+                    titleElement.textContent = prompt.question;
+                    promptElement.appendChild(titleElement);
+
+                    const answerElement = document.createElement('div');
+                    answerElement.classList.add('learning-answer');
+                    answerElement.innerHTML = `
+                        <strong>Answer:</strong> ${prompt.answer}
+                        <br>
+                        <em>Next review in approximately ${Math.round(prompt.reviewInterval)} days</em>
+                    `;
+                    promptElement.appendChild(answerElement);
+
+                    const actionsElement = document.createElement('div');
+                    actionsElement.classList.add('learning-actions');
+
+                    const revealButton = document.createElement('button');
+                    revealButton.textContent = 'Reveal Answer';
+                    revealButton.classList.add('learning-button', 'reveal-button');
+                    revealButton.addEventListener('click', () => {
+                        answerElement.style.display = 
+                            answerElement.style.display === 'block' ? 'none' : 'block';
+                    });
+                    actionsElement.appendChild(revealButton);
+
+                    const correctButton = document.createElement('button');
+                    correctButton.textContent = 'Remembered';
+                    correctButton.classList.add('learning-button', 'correct-button');
+                    correctButton.addEventListener('click', () => {
+                        this.calculateNextReview(prompt, true);
+                        this.saveLearningPrompts();
+                        this.renderLearningPrompts();
+                    });
+                    actionsElement.appendChild(correctButton);
+
+                    const incorrectButton = document.createElement('button');
+                    incorrectButton.textContent = 'Forgot';
+                    incorrectButton.classList.add('learning-button', 'incorrect-button');
+                    incorrectButton.addEventListener('click', () => {
+                        this.calculateNextReview(prompt, false);
+                        this.saveLearningPrompts();
+                        this.renderLearningPrompts();
+                    });
+                    actionsElement.appendChild(incorrectButton);
+
+                    promptElement.appendChild(actionsElement);
+                    container.appendChild(promptElement);
+                });
+            }
+        }
+
+        // Initialize the Family Learning Tracker
+        const familyLearningTracker = new FamilyLearningTracker();
+    </script>
+</body>
+</html>
